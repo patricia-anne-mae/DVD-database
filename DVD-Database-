@@ -1,0 +1,106 @@
+--Creates a detailed table 
+drop table if exists detailed_table;
+create table detailed_table(
+  customer_id int, 
+  first_name varchar, 
+  last_name varchar,
+  email varchar, 
+  store_id int, 
+  amount numeric, 
+  rental_id int
+  );
+  
+--Verify detailed table 
+select * from detailed_table 
+
+--Creates summary table 
+drop table if exists summary_table; 
+create table summary_table(
+  customer_id int, 
+  full_name varchar, 
+  total_rented int, 
+  total_amount numeric, 
+  ); 
+  
+--Verify summary table 
+select * from summary_table 
+
+--Extract raw data
+insert into detailed_table(
+  customer_id, 
+  first_name, 
+  last_name, 
+  email, 
+  store_id, 
+  amount, 
+  rental_id
+  )
+  
+ select c.customer_id, c.first_name, c.last_name, c.email, c.store_id, 
+ p.amount, r.rental_id
+ from customer as c
+ inner join rental as r on r.customer_id = c.customer_id
+ inner join payment as p on p.rental_id = r.rental_id; 
+ 
+ --Verify detailed table with extracted data 
+ select * from detailed_table 
+ 
+ --Creates a function
+ create or replace function customer_sales()
+ returns trigger
+ language plpsql
+ as $$
+ begin 
+ delete from summary_table;
+ insert into summary_table(
+   customer_id,
+   full_name, 
+   last_name, 
+   total_rented, 
+   total_amount
+   )
+select customer_id, concat(first_name, ' ', last_name) as full_name, 
+count(rental_id) as total_rented,
+sum(amount) as total_amount
+from detailed_table
+group by customer_id, full_name
+order by total_amount desc
+limit 15;
+return new;
+end; $$
+
+--Create trigger 
+create trigger summary_refresh
+after insert on detailed_table 
+for each statement 
+execute procedure customer_sales();
+
+--Creates procedure 
+create or replace procedure customer_report()
+language plpsql
+as $$ 
+begin 
+delete from detailed_table;
+insert into detailed_table(
+  customer_id,
+  first_name, 
+  last_name, 
+  email,
+  store_id, 
+  amount, 
+  rental_id
+  )
+select c.customer_id, c.first_name, c.last_name, c.email, c.store_id,
+p.amount, r.rental_id
+from custoemr as c 
+inner join rental as r on r.customer_id = c.customer_id
+inner join payment as p on p.rental_id = r.rental_id; 
+end;
+$$
+
+--generate procedure 
+call customer_report();
+
+--view table 
+select * from detailed_table
+select * from summary_table 
