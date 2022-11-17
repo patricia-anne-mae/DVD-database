@@ -1,4 +1,5 @@
 # DVD-database
+Database Management and ETL in PostgreSQL
 
 Tasks: 
 1. Write a SQL code that creates the tables to hold your report sections. 
